@@ -1,0 +1,45 @@
+version: '3'
+
+vars:
+  REGISTRY: ghcr.io
+  REPO_OWNER: '{{.REPO_OWNER | default "devopsbuildingblocks"}}'
+  REPO_NAME: '{{.REPO_NAME | default "devcontainer-images"}}'
+
+tasks:
+  build:
+    desc: 'Build a specific devcontainer image for native platform (usage: task build IMAGE=ubuntu-base)'
+    cmds:
+      - '[[ -z "{{.IMAGE}}" ]] && echo "IMAGE is required" && exit 1 || true'
+      - devcontainer build --workspace-folder src/{{.IMAGE}} --no-cache --image-name {{.REGISTRY}}/{{.REPO_OWNER}}/{{.REPO_NAME}}/{{.IMAGE}}:latest --label org.opencontainers.image.source=https://github.com/{{.REPO_OWNER}}/{{.REPO_NAME}}
+
+  build-multiplatform:
+    desc: 'Build a multiplatform devcontainer image (usage: task build-multiplatform IMAGE=ubuntu-base)'
+    cmds:
+      - '[[ -z "{{.IMAGE}}" ]] && echo "IMAGE is required" && exit 1 || true'
+      - |
+        # Ensure docker-container builder exists and is in use
+        if ! docker buildx ls | grep -q "multiplatform-builder"; then
+          docker buildx create --name multiplatform-builder --driver docker-container --use
+        else
+          docker buildx use multiplatform-builder
+        fi
+      - devcontainer build --workspace-folder src/{{.IMAGE}} --no-cache --image-name {{.REGISTRY}}/{{.REPO_OWNER}}/{{.REPO_NAME}}/{{.IMAGE}}:latest --platform linux/amd64,linux/arm64 --label org.opencontainers.image.source=https://github.com/{{.REPO_OWNER}}/{{.REPO_NAME}}
+
+  push:
+    desc: 'Push a specific devcontainer image (usage: task push IMAGE=ubuntu-base)'
+    cmds:
+      - '[[ -z "{{.IMAGE}}" ]] && echo "IMAGE is required" && exit 1 || true'
+      - docker push {{.REGISTRY}}/{{.REPO_OWNER}}/{{.REPO_NAME}}/{{.IMAGE}}:latest
+
+  publish:
+    desc: 'Build and push a specific image (usage: task publish IMAGE=ubuntu-base)'
+    cmds:
+      - task: build
+        vars: {IMAGE: '{{.IMAGE}}'}
+      - task: push
+        vars: {IMAGE: '{{.IMAGE}}'}
+
+  list:
+    desc: 'List available images in src/'
+    cmds:
+      - ls -1 src/
