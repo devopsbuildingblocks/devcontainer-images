@@ -1,0 +1,11 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/devbox:0": {
+      "version": "0.16.0"
+    }
+  }
+}
