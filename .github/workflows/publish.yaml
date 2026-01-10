@@ -1,0 +1,358 @@
+name: Publish DevContainer Images
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "src/**/.devcontainer/devcontainer.json"
+      - "src/**/.devcontainer.json"
+
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: "Image name to publish (e.g., ubuntu-base)"
+        required: true
+        type: string
+      version:
+        description: "Version to tag (e.g., 1.2.3). If empty, reads from devcontainer.json"
+        required: false
+        type: string
+      tag_latest:
+        description: "Apply 'latest' tag"
+        required: false
+        type: boolean
+        default: true
+      tag_major:
+        description: "Apply major version tag (e.g., '1')"
+        required: false
+        type: boolean
+        default: true
+      tag_major_minor:
+        description: "Apply major.minor version tag (e.g., '1.2')"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect version changes
+        id: detect
+        shell: bash
+        run: |
+          # Check if this is a manual workflow dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual workflow dispatch detected"
+            IMAGE_NAME="${{ inputs.image_name }}"
+            VERSION="${{ inputs.version }}"
+            TAG_LATEST="${{ inputs.tag_latest }}"
+            TAG_MAJOR="${{ inputs.tag_major }}"
+            TAG_MAJOR_MINOR="${{ inputs.tag_major_minor }}"
+
+            # Validate image exists
+            if [ ! -d "src/$IMAGE_NAME" ]; then
+              echo "::error::Image directory src/$IMAGE_NAME does not exist"
+              exit 1
+            fi
+
+            # If version not provided, read from devcontainer.json
+            if [ -z "$VERSION" ]; then
+              DEVCONTAINER_PATH="src/$IMAGE_NAME/.devcontainer/devcontainer.json"
+              if [ ! -f "$DEVCONTAINER_PATH" ]; then
+                DEVCONTAINER_PATH="src/$IMAGE_NAME/devcontainer.json"
+              fi
+
+              if [ ! -f "$DEVCONTAINER_PATH" ]; then
+                echo "::error::No devcontainer.json found for $IMAGE_NAME"
+                exit 1
+              fi
+
+              VERSION=$(jq -r '.version // empty' "$DEVCONTAINER_PATH")
+              if [ -z "$VERSION" ]; then
+                echo "::error::No version found in devcontainer.json for $IMAGE_NAME"
+                exit 1
+              fi
+            fi
+
+            echo "Publishing $IMAGE_NAME version $VERSION"
+            echo "  tag_latest: $TAG_LATEST"
+            echo "  tag_major: $TAG_MAJOR"
+            echo "  tag_major_minor: $TAG_MAJOR_MINOR"
+
+            CHANGED_IMAGES=$(jq -n -c \
+              --arg name "$IMAGE_NAME" \
+              --arg version "$VERSION" \
+              --arg path "src/$IMAGE_NAME" \
+              --argjson tag_latest "$TAG_LATEST" \
+              --argjson tag_major "$TAG_MAJOR" \
+              --argjson tag_major_minor "$TAG_MAJOR_MINOR" \
+              '[{"name": $name, "version": $version, "path": $path, "tag_latest": $tag_latest, "tag_major": $tag_major, "tag_major_minor": $tag_major_minor}]')
+
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "is_manual=true" >> $GITHUB_OUTPUT
+            {
+              echo "changed_images<<EOF"
+              echo "$CHANGED_IMAGES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Detecting version changes in devcontainer.json files..."
+
+          CHANGED_IMAGES="[]"
+
+          while IFS= read -r devcontainer_path; do
+            IMAGE_NAME=$(echo "$devcontainer_path" | cut -d'/' -f2)
+
+            echo "Checking $IMAGE_NAME..."
+
+            CURRENT_VERSION=$(jq -r '.version // empty' "$devcontainer_path" 2>/dev/null || echo "")
+
+            if [ -z "$CURRENT_VERSION" ]; then
+              echo "  Skipping - no version property"
+              continue
+            fi
+
+            PREVIOUS_VERSION=""
+            if git show HEAD~1:"$devcontainer_path" &>/dev/null; then
+              PREVIOUS_VERSION=$(git show HEAD~1:"$devcontainer_path" | jq -r '.version // empty' 2>/dev/null || echo "")
+            fi
+
+            echo "  Current: $CURRENT_VERSION, Previous: $PREVIOUS_VERSION"
+
+            if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+              echo "  VERSION CHANGED"
+              CHANGED_IMAGES=$(echo "$CHANGED_IMAGES" | jq -c \
+                --arg name "$IMAGE_NAME" \
+                --arg version "$CURRENT_VERSION" \
+                --arg path "src/$IMAGE_NAME" \
+                '. + [{"name": $name, "version": $version, "path": $path, "tag_latest": true, "tag_major": true, "tag_major_minor": true}]')
+            fi
+          done < <(find src -name "devcontainer.json" -path "*/.devcontainer/*" 2>/dev/null)
+
+          if [ "$CHANGED_IMAGES" = "[]" ]; then
+            echo "No version changes detected"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Version changes detected:"
+            echo "$CHANGED_IMAGES" | jq .
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "is_manual=false" >> $GITHUB_OUTPUT
+            {
+              echo "changed_images<<EOF"
+              echo "$CHANGED_IMAGES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build dependency graph and sort
+        if: steps.detect.outputs.has_changes == 'true'
+        id: sort
+        shell: bash
+        env:
+          CHANGED_IMAGES: ${{ steps.detect.outputs.changed_images }}
+        run: |
+          echo "Building dependency graph..."
+
+          # Discover dependencies from Dockerfiles
+          declare -A DEPENDS_ON
+
+          for dir in src/*/; do
+            [ ! -d "$dir" ] && continue
+            IMAGE_NAME=$(basename "$dir")
+
+            for dockerfile in "$dir/.devcontainer/Dockerfile" "$dir/Dockerfile"; do
+              if [ -f "$dockerfile" ]; then
+                FROM_LINE=$(grep "^FROM.*ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" "$dockerfile" | head -1 || true)
+                if [ -n "$FROM_LINE" ]; then
+                  PARENT=$(echo "$FROM_LINE" | awk '{print $2}' | sed 's|.*/||' | sed 's|:.*||')
+                  if [ -d "src/$PARENT" ]; then
+                    DEPENDS_ON[$IMAGE_NAME]="$PARENT"
+                    echo "$IMAGE_NAME depends on $PARENT"
+                  fi
+                fi
+                break
+              fi
+            done
+          done
+
+          # Calculate priority for each changed image
+          function get_priority() {
+            local img=$1
+            local dep="${DEPENDS_ON[$img]}"
+            if [ -z "$dep" ]; then
+              echo "0"
+            else
+              local dep_priority=$(get_priority "$dep")
+              echo "$((dep_priority + 1))"
+            fi
+          }
+
+          # Sort changed images by priority
+          SORTED="[]"
+          for priority in 0 1 2 3 4; do
+            for img_data in $(echo "$CHANGED_IMAGES" | jq -c '.[]'); do
+              name=$(echo "$img_data" | jq -r '.name')
+              img_priority=$(get_priority "$name")
+              if [ "$img_priority" = "$priority" ]; then
+                SORTED=$(echo "$SORTED" | jq -c ". + [$img_data]")
+              fi
+            done
+          done
+
+          echo "Build order:"
+          echo "$SORTED" | jq .
+
+          {
+            echo "sorted_images<<EOF"
+            echo "$SORTED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup QEMU
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images
+        if: steps.detect.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          SORTED_IMAGES: ${{ steps.sort.outputs.sorted_images }}
+        run: |
+          IMAGE_PREFIX="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}"
+
+          # Install devcontainer CLI
+          npm install -g @devcontainers/cli
+
+          for img_data in $(echo "$SORTED_IMAGES" | jq -c '.[]'); do
+            NAME=$(echo "$img_data" | jq -r '.name')
+            VERSION=$(echo "$img_data" | jq -r '.version')
+            PATH_DIR=$(echo "$img_data" | jq -r '.path')
+            TAG_LATEST=$(echo "$img_data" | jq -r '.tag_latest // true')
+            TAG_MAJOR=$(echo "$img_data" | jq -r '.tag_major // true')
+            TAG_MAJOR_MINOR=$(echo "$img_data" | jq -r '.tag_major_minor // true')
+
+            echo "=========================================="
+            echo "Building $NAME version $VERSION"
+            echo "  tag_latest: $TAG_LATEST"
+            echo "  tag_major: $TAG_MAJOR"
+            echo "  tag_major_minor: $TAG_MAJOR_MINOR"
+            echo "=========================================="
+
+            IMAGE_NAME="$IMAGE_PREFIX/$NAME"
+
+            # Generate semantic version tags
+            TAGS=""
+
+            if [ "$TAG_LATEST" = "true" ]; then
+              TAGS="$IMAGE_NAME:latest"
+            fi
+
+            if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+
+              if [ "$TAG_MAJOR" = "true" ]; then
+                TAGS="$TAGS $IMAGE_NAME:$MAJOR"
+              fi
+              if [ "$TAG_MAJOR_MINOR" = "true" ]; then
+                TAGS="$TAGS $IMAGE_NAME:$MAJOR.$MINOR"
+              fi
+              TAGS="$TAGS $IMAGE_NAME:$MAJOR.$MINOR.$PATCH"
+            else
+              TAGS="$TAGS $IMAGE_NAME:$VERSION"
+            fi
+
+            # Trim leading space if any
+            TAGS=$(echo "$TAGS" | xargs)
+            FIRST_TAG=$(echo "$TAGS" | awk '{print $1}')
+
+            echo "Tags: $TAGS"
+
+            # Build multiplatform image with all tags
+            # Using devcontainer build with buildx for multi-arch
+            devcontainer build \
+              --workspace-folder "$PATH_DIR" \
+              --platform linux/amd64,linux/arm64 \
+              --image-name "$FIRST_TAG" \
+              --cache-from "$IMAGE_NAME:latest" \
+              --push
+
+            # Apply additional tags by creating and pushing manifest
+            for tag in $TAGS; do
+              if [ "$tag" != "$FIRST_TAG" ]; then
+                echo "Creating manifest for $tag"
+                docker buildx imagetools create -t "$tag" "$FIRST_TAG"
+              fi
+            done
+
+            echo "Successfully published $NAME:$VERSION"
+          done
+
+      - name: Summary
+        if: steps.detect.outputs.has_changes == 'true'
+        shell: bash
+        env:
+          SORTED_IMAGES: ${{ steps.sort.outputs.sorted_images }}
+        run: |
+          echo "## Published Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "_Triggered manually_" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          for img_data in $(echo "$SORTED_IMAGES" | jq -c '.[]'); do
+            NAME=$(echo "$img_data" | jq -r '.name')
+            VERSION=$(echo "$img_data" | jq -r '.version')
+            TAG_LATEST=$(echo "$img_data" | jq -r '.tag_latest // true')
+            TAG_MAJOR=$(echo "$img_data" | jq -r '.tag_major // true')
+            TAG_MAJOR_MINOR=$(echo "$img_data" | jq -r '.tag_major_minor // true')
+
+            # Build tag summary
+            EXTRA_TAGS=""
+            [ "$TAG_LATEST" = "true" ] && EXTRA_TAGS="latest"
+            [ "$TAG_MAJOR" = "true" ] && EXTRA_TAGS="$EXTRA_TAGS, major"
+            [ "$TAG_MAJOR_MINOR" = "true" ] && EXTRA_TAGS="$EXTRA_TAGS, major.minor"
+            EXTRA_TAGS=$(echo "$EXTRA_TAGS" | sed 's/^, //')
+
+            if [ -n "$EXTRA_TAGS" ]; then
+              echo "- **$NAME**: $VERSION (+ $EXTRA_TAGS)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **$NAME**: $VERSION" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
