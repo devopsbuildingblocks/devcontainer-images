@@ -1,0 +1,10 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/common-utils:0": {}
+  },
+  "remoteUser": "vscode"
+}
