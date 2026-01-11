@@ -1,4 +1,4 @@
-name: Publish DevContainer Images
+name: Publish Dev Container Images
 
 on:
   push:
