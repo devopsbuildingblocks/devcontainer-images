@@ -1,13 +1,10 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "."
   },
   "features": {
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/devbox:0": {
-      "version": "0.16.0"
-    },
     "ghcr.io/devopsbuildingblocks/devcontainer-features/oh-my-posh:0": {
       "version": "26.23.6"
     },
