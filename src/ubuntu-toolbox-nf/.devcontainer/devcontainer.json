@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "."
@@ -24,7 +24,8 @@
     },
     "ghcr.io/devopsbuildingblocks/devcontainer-features/lazygit:0": {
       "version": "0.57.0",
-      "enableGitDiffPager": true
+      "enableGitDiffPager": true,
+      "enableFileIcons": true
     }
   }
 }
