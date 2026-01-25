@@ -6,13 +6,7 @@
   },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/oh-my-posh:0": {},
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/eza:0": {},
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/bat:0": {},
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/fzf:0": {},
-    "ghcr.io/devopsbuildingblocks/devcontainer-features/lazygit:0": {},
     "ghcr.io/devopsbuildingblocks/devcontainer-features/claude:0": {},
     "ghcr.io/devopsbuildingblocks/devcontainer-features/gemini:0": {}
-  },
-  "remoteUser": "vscode"
+  }
 }
