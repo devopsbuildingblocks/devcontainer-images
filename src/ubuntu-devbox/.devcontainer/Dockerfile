@@ -1,6 +1,6 @@
 # Pin to specific version for reproducibility
 # Update this version when you want to update the base image
-FROM ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-base:0.1.4
+FROM ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-base:0.1.5
 
 # Pre-configure Nix for multiplatform builds with QEMU emulation
 # This fixes "unable to load seccomp BPF program: Invalid argument" errors
