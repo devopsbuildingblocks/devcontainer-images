@@ -1,9 +1,6 @@
 {
   "name": "DB2 - Dev Container Images",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
-  },
+  "image": "ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-toolbox-nf:0.1.3",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devopsbuildingblocks/devcontainer-features/claude:0": {},
