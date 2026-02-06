@@ -6,6 +6,8 @@ Reusable devcontainer images published to GitHub Container Registry (ghcr.io). B
 
 All images are available at `ghcr.io/devopsbuildingblocks/devcontainer-images/`
 
+### Ubuntu-based Images
+
 | Image | Description | Current Version |
 |-------|-------------|-----------------|
 | `ubuntu-base` | Foundation image with build dependencies | 0.1.9 |
@@ -13,13 +15,29 @@ All images are available at `ghcr.io/devopsbuildingblocks/devcontainer-images/`
 | `ubuntu-toolbox` | Adds modern CLI tools | 0.1.3 |
 | `ubuntu-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.3 |
 
+### Rocky Linux-based Images
+
+| Image | Description | Current Version |
+|-------|-------------|-----------------|
+| `rocky-base` | Foundation image based on Rocky Linux 9 | 0.1.0 |
+| `rocky-devbox` | Adds Nix and Devbox package management | 0.1.0 |
+| `rocky-toolbox` | Adds modern CLI tools | 0.1.0 |
+| `rocky-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.0 |
+
 ### Image Hierarchy
 
 ```
+Ubuntu:
 ubuntu-base (buildpack-deps:noble-curl)
     └── ubuntu-devbox (adds Nix + Devbox)
         ├── ubuntu-toolbox (adds CLI tools)
         └── ubuntu-toolbox-nf (CLI tools + Nerd Font icons)
+
+Rocky Linux:
+rocky-base (rockylinux:9)
+    └── rocky-devbox (adds Nix + Devbox)
+        ├── rocky-toolbox (adds CLI tools)
+        └── rocky-toolbox-nf (CLI tools + Nerd Font icons)
 ```
 
 ## Image Details
@@ -66,6 +84,50 @@ Same as ubuntu-toolbox but with Nerd Font icons enabled across all tools. Use th
 
 ```json
 "image": "ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-toolbox-nf:latest"
+```
+
+### rocky-base
+
+Foundation image built on Rocky Linux 9 with common development utilities.
+
+```json
+"image": "ghcr.io/devopsbuildingblocks/devcontainer-images/rocky-base:latest"
+```
+
+### rocky-devbox
+
+Rocky Linux with Nix package manager and Devbox for reproducible development environments.
+
+```json
+"image": "ghcr.io/devopsbuildingblocks/devcontainer-images/rocky-devbox:latest"
+```
+
+**Included:**
+- Nix package manager
+- Devbox v0.16.0
+
+### rocky-toolbox
+
+Rocky Linux development environment with modern CLI tools for improved productivity.
+
+```json
+"image": "ghcr.io/devopsbuildingblocks/devcontainer-images/rocky-toolbox:latest"
+```
+
+**Included CLI Tools:**
+- **oh-my-posh** - Customizable shell prompt
+- **eza** - Modern replacement for `ls`
+- **bat** - `cat` with syntax highlighting
+- **fzf** - Fuzzy finder
+- **delta** - Enhanced git diff viewer
+- **lazygit** - Terminal UI for git
+
+### rocky-toolbox-nf
+
+Same as rocky-toolbox but with Nerd Font icons enabled across all tools. Use this if your terminal has a Nerd Font installed.
+
+```json
+"image": "ghcr.io/devopsbuildingblocks/devcontainer-images/rocky-toolbox-nf:latest"
 ```
 
 ## Usage
@@ -133,7 +195,19 @@ src/
 ├── ubuntu-toolbox/.devcontainer/
 │   ├── devcontainer.json
 │   └── Dockerfile
-└── ubuntu-toolbox-nf/.devcontainer/
+├── ubuntu-toolbox-nf/.devcontainer/
+│   ├── devcontainer.json
+│   └── Dockerfile
+├── rocky-base/.devcontainer/
+│   ├── devcontainer.json
+│   └── Dockerfile
+├── rocky-devbox/.devcontainer/
+│   ├── devcontainer.json
+│   └── Dockerfile
+├── rocky-toolbox/.devcontainer/
+│   ├── devcontainer.json
+│   └── Dockerfile
+└── rocky-toolbox-nf/.devcontainer/
     ├── devcontainer.json
     └── Dockerfile
 ```

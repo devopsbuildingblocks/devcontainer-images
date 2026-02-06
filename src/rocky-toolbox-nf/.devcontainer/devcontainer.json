@@ -1,0 +1,31 @@
+{
+  "version": "0.1.0",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/oh-my-posh:0": {
+      "version": "26.23.6",
+      "theme": "db2"
+    },
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/eza:0": {
+      "version": "0.23.4",
+      "enableIcons": true
+    },
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/bat:0": {
+      "version": "0.26.1"
+    },
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/fzf:0": {
+      "version": "0.67.0"
+    },
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/delta:0": {
+      "version": "0.18.2"
+    },
+    "ghcr.io/devopsbuildingblocks/devcontainer-features/lazygit:0": {
+      "version": "0.57.0",
+      "enableGitDiffPager": true,
+      "enableFileIcons": true
+    }
+  }
+}
