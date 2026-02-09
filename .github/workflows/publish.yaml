@@ -231,7 +231,12 @@ jobs:
 
       - name: Setup QEMU
         if: steps.detect.outputs.has_changes == 'true'
-        uses: docker/setup-qemu-action@v3
+        # Using multiarch/qemu-user-static instead of default tonistiigi/binfmt
+        # because tonistiigi/binfmt (musl-based) doesn't support openat2() syscall
+        # which newer tar versions use (breaks Rocky Linux arm64 builds)
+        # See: https://github.com/tonistiigi/binfmt/issues/285
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Setup Docker Buildx
         if: steps.detect.outputs.has_changes == 'true'
