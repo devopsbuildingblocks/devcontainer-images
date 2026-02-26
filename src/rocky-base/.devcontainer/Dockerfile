@@ -13,6 +13,7 @@ RUN dnf install -y --allowerasing \
         glibc-langpack-en \
     && dnf clean all
 
-# Set locale
+# Set locale (LOCPATH needed for nix-installed programs to find system locales)
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+ENV LOCPATH=/usr/lib/locale

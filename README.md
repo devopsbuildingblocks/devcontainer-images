@@ -19,10 +19,10 @@ All images are available at `ghcr.io/devopsbuildingblocks/devcontainer-images/`
 
 | Image | Description | Current Version |
 |-------|-------------|-----------------|
-| `rocky-base` | Foundation image based on Rocky Linux 9 | 0.1.1 |
-| `rocky-devbox` | Adds Nix and Devbox package management | 0.1.1 |
-| `rocky-toolbox` | Adds modern CLI tools | 0.1.1 |
-| `rocky-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.1 |
+| `rocky-base` | Foundation image based on Rocky Linux 9 | 0.1.2 |
+| `rocky-devbox` | Adds Nix and Devbox package management | 0.1.2 |
+| `rocky-toolbox` | Adds modern CLI tools | 0.1.2 |
+| `rocky-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.2 |
 
 ### Image Hierarchy
 
