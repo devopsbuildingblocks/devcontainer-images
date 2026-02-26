@@ -10,19 +10,19 @@ All images are available at `ghcr.io/devopsbuildingblocks/devcontainer-images/`
 
 | Image | Description | Current Version |
 |-------|-------------|-----------------|
-| `ubuntu-base` | Foundation image with build dependencies | 0.1.9 |
-| `ubuntu-devbox` | Adds Nix and Devbox package management | 0.1.11 |
-| `ubuntu-toolbox` | Adds modern CLI tools | 0.1.3 |
-| `ubuntu-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.3 |
+| `ubuntu-base` | Foundation image with build dependencies | 0.1.10 |
+| `ubuntu-devbox` | Adds Nix and Devbox package management | 0.1.12 |
+| `ubuntu-toolbox` | Adds modern CLI tools | 0.1.4 |
+| `ubuntu-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.4 |
 
 ### Rocky Linux-based Images
 
 | Image | Description | Current Version |
 |-------|-------------|-----------------|
-| `rocky-base` | Foundation image based on Rocky Linux 9 | 0.1.2 |
-| `rocky-devbox` | Adds Nix and Devbox package management | 0.1.2 |
-| `rocky-toolbox` | Adds modern CLI tools | 0.1.2 |
-| `rocky-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.2 |
+| `rocky-base` | Foundation image based on Rocky Linux 9 | 0.1.3 |
+| `rocky-devbox` | Adds Nix and Devbox package management | 0.1.3 |
+| `rocky-toolbox` | Adds modern CLI tools | 0.1.3 |
+| `rocky-toolbox-nf` | Toolbox with Nerd Font icons enabled | 0.1.3 |
 
 ### Image Hierarchy
 
@@ -145,7 +145,7 @@ Same as rocky-toolbox but with Nerd Font icons enabled across all tools. Use thi
 
 ```json
 {
-  "image": "ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-toolbox:0.1.3"
+  "image": "ghcr.io/devopsbuildingblocks/devcontainer-images/ubuntu-toolbox:0.1.4"
 }
 ```
 
