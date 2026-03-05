@@ -54,10 +54,11 @@ ubuntu-base (buildpack-deps:noble-curl)
 
 ### Version Bump Checklist
 
-When bumping an image version, you MUST update both:
+When bumping an image version, you MUST update all of the following:
 
 1. `src/<image>/.devcontainer/devcontainer.json` — the `version` field
 2. The `FROM` line in every downstream image's `Dockerfile` that references the bumped image
+3. `README.md` — the version in the Available Images table for that image (and any version pins in usage examples)
 
 For example, bumping `ubuntu-base` requires also updating the `FROM` pin in `ubuntu-devbox/Dockerfile`. Bumping `ubuntu-devbox` requires updating the `FROM` pin in both `ubuntu-toolbox/Dockerfile` and `ubuntu-toolbox-nf/Dockerfile`. The same applies to the rocky image chain.
 
