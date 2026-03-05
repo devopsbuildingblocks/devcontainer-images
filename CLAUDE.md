@@ -52,6 +52,15 @@ ubuntu-base (buildpack-deps:noble-curl)
 - Semantic version tags are applied: `latest`, major (`1`), major.minor (`1.2`), and full version (`1.2.3`)
 - Manual publishing is available via workflow dispatch with control over which tags to apply
 
+### Version Bump Checklist
+
+When bumping an image version, you MUST update both:
+
+1. `src/<image>/.devcontainer/devcontainer.json` — the `version` field
+2. The `FROM` line in every downstream image's `Dockerfile` that references the bumped image
+
+For example, bumping `ubuntu-base` requires also updating the `FROM` pin in `ubuntu-devbox/Dockerfile`. Bumping `ubuntu-devbox` requires updating the `FROM` pin in both `ubuntu-toolbox/Dockerfile` and `ubuntu-toolbox-nf/Dockerfile`. The same applies to the rocky image chain.
+
 ## Directory Structure
 
 - `src/<image-name>/.devcontainer/` - Contains `devcontainer.json` and `Dockerfile` for each image
